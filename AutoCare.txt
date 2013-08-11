@@ -1,0 +1,714 @@
+//#include "\\My Documents\\AutoCare_Help.htm";
+//#include "\\My Documents\\Cars.txt"
+//#include "\\My Documents\\GPGas_Record.txt"
+//#include "\\My Documents\\FTruckGas_Record.txt"
+//#include "\\My Documents\\TiburonGas_Record.txt"
+//#include "\\My Documents\\CTruckGas_Record.txt"
+//#include "\\My Documents\\CavalierGas_Record.txt"
+var DB_FILE = "\\My Documents\\Cars.txt"
+var DM_FILE = "\\My Documents\\Maintenance.txt"
+var DB_PATH = "\\My Documents\\"
+var car
+var file
+var now = Date();
+var IDM_FILE =1000;
+var IDM_EXIT =1001;
+var IDM_SAVE =1002;
+var IDM_HELP = 3000
+var IDM_ABOUT = 3010
+var IDM_AutoCare_Help = 3020
+var VERISON = "Auto Care Version 1.0"
+var COPYRIGHT = "2007 Byron Austin"
+var EMAIL = "byron_austin@qwest.net"
+var HELP_FILE = "\\My Documents\\AutoCare_Help.htm";
+var maint
+var interval
+//Maintenance interval variables
+var OilIV
+var TireRotIV
+var RadFIV
+var TireAirIV
+var AirFiltIV
+var TransFiltIV
+var ACIV
+var BatClnIV
+var SplugCngIV
+var SerpBeltIV
+var TimeBeltIV
+var PSFluidIV
+var TireNewIV
+var AlignmentIV
+var BrakesIV
+var Rear_EndIV
+var DriveShaftIV
+var O2SensorIV
+var FuelPumpIV
+var BatCngIV
+var CabinAIRIV
+
+function App_Open()
+{
+  var index,lines,temp
+	AddMenu("File", IDM_FILE);
+	AddMenuItem(1000, "Save", IDM_SAVE);
+	AddMenuItem(1000, "Exit", IDM_EXIT);
+	AddMenu("About", IDM_HELP);
+	AddMenuItem(3000, "About Auto Care", IDM_ABOUT);
+	AddMenuItem(3000, "Help", IDM_AutoCare_Help);
+	rv1.InsertColumn(0,80,"Car");
+	rv1.InsertColumn(1,75,"Mileage");
+	rv1.InsertColumn(2,60,"Gallons");
+	rv1.InsertColumn(3,60,"Dollars");
+	rv1.InsertColumn(4,80,"Date");
+	rv1.InsertColumn(5,85,"Maintenance");
+	rv1.InsertColumn(6,50,"Repair");
+	rv1.InsertColumn(7,200,"Notes");
+	rv1.FullRowSelect = true;
+	rv1.MultiSelect = true;
+	now = now.substr(4,6) + "/" + Right(now,2)
+	if (Left(now,3)== "Jan"){now = "1/" + Right(now,5);}
+	if (Left(now,3)== "Feb"){now = "2/" + Right(now,5);}
+	if (Left(now,3)== "Mar"){now = "3/" + Right(now,5);}
+	if (Left(now,3)== "Apr"){now = "4/" + Right(now,5);}
+	if (Left(now,3)== "May"){now = "5/" + Right(now,5);}
+	if (Left(now,3)== "Jun"){now = "6/" + Right(now,5);}
+	if (Left(now,3)== "Jul"){now = "7/" + Right(now,5);}
+	if (Left(now,3)== "Aug"){now = "8/" + Right(now,5);}
+	if (Left(now,3)== "Sep"){now = "9/" + Right(now,5);}
+	if (Left(now,3)== "Oct"){now = "10/" + Right(now,5);}
+	if (Left(now,3)== "Nov"){now = "11/" + Right(now,5);}
+	if (Left(now,3)== "Dec"){now = "12/" + Right(now,5);}
+	if (FileExists(DB_FILE)) 
+	{
+		Text1.Load(DB_FILE);
+		lines = Text1.GetNumLines()
+		for (index=0;index<=lines;index++)
+		{
+			temp = Text1.GetLine(index)
+			Combo1.AddItem(temp)
+		}
+	}
+	Combo1.ListIndex = 0
+	Text1.Text = ""
+	Radio_Gas_Click()
+	Text2.Text = now;
+	Radio_Maint.Enabled = true;
+	Label8.Caption = "Maintenance Type";
+	Initialize_Combo2();
+	Text3.Text = "";
+	Button23.Caption = "Get Info";
+	Label9.Caption = "";
+	Combo2.ListIndex = 0;
+}
+
+function App_Menu(id)
+{
+	switch(id) 
+	{
+		case IDM_EXIT:
+			rv1.Save(file);
+			App.Exit();
+			break;
+		case IDM_SAVE:
+			rv1.Save(file);
+			break;
+		case IDM_ABOUT:
+			go("form3");
+			break;
+		case IDM_AutoCare_Help:
+			Execute("\\Windows\\iexplore.exe", HELP_FILE);
+			break;
+	}
+}
+
+function Radio_Gas_Click() 
+{
+	Radio_Gas.Checked = true;
+	Radio_Maint.Checked = false;
+}
+
+function Radio_Maint_Click() 
+{
+	Radio_Gas.Checked = false;
+	Radio_Maint.Checked = true;
+	if (Combo1.Text != "Select Vehicle")
+	{
+		go("form_Maint");
+	}
+}
+
+function Combo1_SelChange() 
+{
+	Beep(0);
+	car = Combo1.Text
+	rv1.Clear();
+	if (car == "Gran Prix") {file = "\\My Documents\\GPGas_Record.txt"};
+	if (car == "Ford Truck") {file = "\\My Documents\\FTruckGas_Record.txt"};
+	if (car == "Tiburon") {file = "\\My Documents\\TiburonGas_Record.txt"};
+	if (car == "Chevy Truck") {file = "\\My Documents\\CTruckGas_Record.txt"};
+	if (car == "Cavalier") {file = "\\My Documents\\CavalierGas_Record.txt"};
+	if (FileExists(file)) rv1.Load(file);
+	if (Radio_Maint.Checked == true)
+	{
+		go("form_Maint");
+		Text3.Visible = true;
+	}
+}
+
+function Combo2_SelChange()
+{
+	var linenumber;
+	Beep(0);
+	linenumber = Combo2.ListIndex;
+	Label9.Visible = false;
+	maint = "";
+	maint = Combo2.GetItemString(linenumber);
+	List1.Clear();
+	Text3.Text = "";//maint
+	if (maint == "Oil Change"){interval = OilIV;}
+	if (maint == "Air Filter Change"){interval = AirFiltIV;}
+	if (maint == "Cabin Air Filter") {interval = CabinAIRIV;}
+	if (maint == "Tire Rotation"){interval = TireRotIV;}
+	if (maint == "Radiator Flush"){interval = RadFIV;}
+	if (maint == "Tire Air Check"){interval = TireAirIV;}
+	if (maint == "Trans Filter Change"){interval = TransFiltIV;}
+	if (maint == "A/C Charge"){interval = ACIV;}
+	if (maint == "Battery Clean"){interval = BatClnIV;}
+	if (maint == "Spark plug change"){interval = SplugCngIV;}
+	if (maint == "Serpentine belt"){interval = SerpBeltIV;}
+	if (maint == "Timing belt"){interval = TimeBeltIV;}
+	if (maint == "Power Steering"){interval = PSFluidIV;}
+	if (maint == "New Tires"){interval = TireNewIV;}
+	if (maint == "Alignment"){interval = AlignmentIV;}
+	if (maint == "Brakes"){interval = BrakesIV;}
+	if (maint == "Rear End"){interval = Rear_EndIV;}
+	if (maint == "Drive Shaft"){interval = DriveShaftIV;}
+	if (maint == "O2 Sensor replacement"){interval = O2SensorIV;}
+	if (maint == "Fuel Pump replacement"){interval = FuelPumpIV;}
+	if (maint == "New Battery"){interval = BatCngIV;}
+}
+
+function ButtonView_Click()
+{
+	if (Combo1.Text == "Select Vehicle")
+	{
+		Alert("Please select a vehicle first");
+	}
+	else
+	{
+		go("form2");
+		rv1.Scroll(0,14 * rv1.NumItems);
+	}
+}
+
+function ButtonReturn_Click()
+{
+	rv1.Save(file);
+	go("form1");
+}
+
+function ButtonDelete_Click()
+{
+	var length, temp;
+	temp = Text1.Text;
+	length = temp.length;
+	if (length >0) 
+	{
+		temp = Left(temp, length-1);
+	}
+	Text1.Text = temp;
+}
+
+function ButtonDelete2_Click()
+{
+	var length, temp
+	temp = Text3.Text
+	length = temp.length
+	if (length >0) 
+	{
+		temp = Left(temp, length-1)
+	}
+	Text3.Text = temp
+}
+
+function Left(str, n){
+	if (n <= 0)
+	    return "";
+	else if (n > String(str).length)
+	    return str;
+	else
+	    return String(str).substring(0,n);
+}
+function Right(str, n){
+    if (n <= 0)
+       return "";
+    else if (n > String(str).length)
+       return str;
+    else {
+       var iLen = String(str).length;
+       return String(str).substring(iLen, iLen - n);
+    }
+}
+
+function Button1_Click()
+{
+	Keypad("1");
+}
+
+function Button2_Click()
+{
+	Keypad("2");
+}
+
+function Button3_Click()
+{
+	Keypad("3");
+}
+
+function Button4_Click()
+{
+	Keypad("4");
+}
+
+function Button5_Click()
+{
+	Keypad("5");
+}
+
+function Button6_Click()
+{
+	Keypad("6");
+}
+
+function Button7_Click()
+{
+	Keypad("7");
+}
+
+function Button8_Click()
+{
+	Keypad("8");
+}
+
+function Button9_Click()
+{
+	Keypad("9");
+}
+
+function Button10_Click()
+{
+	Keypad("0");
+}
+
+function Button11_Click()
+{
+	Keypad(".");
+}
+
+function ButtonMiles_Click(){
+ if (Combo1.Text == "Select Vehicle"){
+  Alert("Please select a vehicle first");
+  }
+ else{
+  Text_Mileage.Text = Text1.Text 
+  Text1.Text = ""
+ }
+}
+
+function ButtonGallons_Click(){
+ if (Combo1.Text == "Select Vehicle"){
+  Alert("Please select a vehicle first");
+  }
+ else{
+  Text_Gallons.Text = Text1.Text 
+  Text1.Text = ""
+ }
+}
+
+function ButtonDollars_Click(){
+ if (Combo1.Text == "Select Vehicle"){
+  Alert("Please select a vehicle first");
+  }
+ else{
+  Text_$.Text = Text1.Text 
+  Text1.Text = ""
+ }
+}
+
+function ButtonGo_Click(){
+var index
+ if (Combo1.Text == "Select Vehicle"){
+  Alert("Please select a vehicle first");
+  }
+ else{
+  if((Text_Mileage.Text != "")&&(Text_Gallons.Text != "")&&(Text_$.Text != "")){
+   rv1.AddItem(Combo1.Text)
+   index = rv1.NumItems
+   rv1.ItemText(index-1,1) = Text_Mileage.Text
+   rv1.ItemText(index-1,2) = Text_Gallons.Text
+   rv1.ItemText(index-1,3) = "$" + Text_$.Text
+   rv1.ItemText(index-1,4) = Text2.Text
+   rv1.ItemText(index-1,5) = "gas"
+   Text1.Text = index 
+   rv1.Save(file);
+   Check_Maintenance();
+  }
+  else{
+   Alert("Please enter Mileage, Gallons and $$$, Then hit GO")
+  }
+ }
+}
+
+function rv1_ColumnClick(n) {
+  rv1.SortBy(n, 0); // Sort by Col n, ascending
+}
+
+function rv1_Click(){
+ var i, dpg,mpg,Dollars,Gallons,Miles,length, i2
+ i = rv1.ListIndex; 
+ Text_MPG.Text = "";
+ Text_$PG.Text = "";
+ Text_Miles.Text = "";
+ while((rv1.ItemText(i,5) != "gas")&&(i>0)){i--;}
+ i2 = i-1;
+ while ((rv1.ItemText(i2,5) != "gas")&&(i2>0)){i2--;}
+ if (i > 0){
+	length = rv1.ItemText(i,3).length
+	Dollars = Right(rv1.ItemText(i,3),length - 1)
+	Gallons = rv1.ItemText(i,2)
+	Miles = rv1.ItemText(i,1) - rv1.ItemText(i2,1)
+	Text_MPG.Text = (parseInt((Miles/Gallons)*1000))/1000
+	Text_Miles.Text = Miles;
+ };
+ dpg =(parseInt((Dollars/Gallons)*1000))/1000
+ Text_$PG.Text = dpg;
+ Beep(3);
+}
+
+function Button23_Click()//Get info button on maintenance page
+{ 
+	var last, next, average, count, current
+	if ((Combo2.Text == "")||(Combo2.Text == "Select"))
+	{
+		Alert("Please select Maintenance Type first");
+	}
+	else 
+	{
+		maint = Combo2.Text;
+		List1.AddItem(maint);
+		count = rv1.numItems;
+		while ((rv1.ItemText(count,5)!= maint)&&(count > 0))
+		{
+			count--;
+		}
+		if (count != 0) 
+		{
+			List1.AddItem("Last  " + rv1.ItemText(count,1)+ "  On  " + rv1.ItemText(count,4)) ;
+			next = parseInt(rv1.ItemText(count, 1)) + parseInt(interval);
+			List1.AddItem("Next  " + next);
+			count = rv1.numItems;
+			while ((rv1.ItemText(count,5)!="gas")&&(count > 0 ))
+			{
+				count--;
+			}
+			if (count > 0)
+			{
+				current = parseInt(rv1.ItemText(count,1))
+				List1.AddItem("Last fill up " + current);
+			}
+			if (current > next-300)
+			{
+				List1.AddItem(maint + " OVERDUE by " + parseInt(current-next) + " MILES!!!")
+				Label9.Caption = maint + " SOON!"
+				Label9.Visible = true;
+				Label9.ForeColor = RGB(255,0,0)
+			}
+		}
+		if (count == 0) 
+		{
+			Alert("No " + maint + " history on " + car + "!")
+		}
+	}
+}
+
+function Button24_Click()//Update button on maintenance page
+{
+	var index
+	if (Combo2.Text == "Select")
+	{
+		Alert("Please select Maintenance Type first");
+	}
+	else
+	{
+		if(Text3.Text != "")
+		{
+			rv1.AddItem(Combo1.Text);
+			index = rv1.NumItems;
+			rv1.ItemText(index-1,1) = Text3.Text;
+			Text3.Text = maint;
+			rv1.ItemText(index-1,4) = Text2.Text;
+			rv1.ItemText(index-1,5) = Text3.Text;
+		}
+		else
+		{
+			Alert("Please enter Mileage Then hit Update");
+		}
+	}
+}
+
+function Button14_Click()
+{
+	Keypad1("1");
+}
+
+function Button13_Click()
+{
+	Keypad1("2");
+}
+
+function Button12_Click()
+{
+	Keypad1("3");
+}
+
+function Button15_Click()
+{
+	Keypad1("4");
+}
+
+function Button16_Click()
+{
+	Keypad1("5");
+}
+
+function Button17_Click()
+{
+	Keypad1("6");
+}
+
+function Button18_Click()
+{
+	Keypad1(".");
+}
+
+function Button19_Click()
+{
+	Keypad1("7");
+}
+
+function Button20_Click()
+{
+	Keypad1("8");
+}
+
+function Button21_Click()
+{
+	Keypad1("9");
+}
+
+function Button22_Click()
+{
+	Keypad1("0");
+}
+
+function Button25_Click()// Save and exit on maintenance form
+{ 
+	rv1.Save(file);
+	Button26.Visible = true;
+	List1.Clear();
+	go("form1")
+}
+
+function Initialize_Combo2()
+{
+	var i, tempMaint
+	Combo2.AddItem("Select")
+	if (FileExists(DM_FILE))
+	{
+		Text3.Load(DM_FILE);
+		lines = Text3.GetNumLines()
+		for (index=1;index<=lines;index++)
+		{
+			temp = Text3.GetLine(index)
+			i = 0;
+			tempMaint = "";
+			while((temp.substr(i,1) != "[")&&(i < 100))
+			{
+				tempMaint = tempMaint + temp.substr(i,1);
+				i++;
+			}
+			if(tempMaint != ""){Combo2.AddItem(tempMaint);}
+			tempMaint = "";
+			i++;
+			while((temp.substr(i,1) != "]")&&(i < 100))
+			{
+				tempMaint = tempMaint + temp.substr(i,1);
+				i++;
+			}
+			if(Left(temp,6)=="Oil Ch"){OilIV = tempMaint;}
+			if(Left(temp,6)=="Tire R"){TireRotIV = tempMaint;}
+			if(Left(temp,6)=="Radiat"){RadFIV = tempMaint;}
+			if(Left(temp,6)=="Tire A"){TireAirIV = tempMaint;}
+			if(Left(temp,6)=="Air Fi"){AirFiltIV = tempMaint;}
+			if(Left(temp,6)=="Cabin "){CabinAIRIV = tempMaint;}
+			if(Left(temp,6)=="Trans "){TransFiltIV = tempMaint;}
+			if(Left(temp,6)=="A/C Ch"){ACIV = tempMaint;}
+			if(Left(temp,6)=="Batter"){BatClnIV = tempMaint;}
+			if(Left(temp,6)=="Spark "){SplugCngIV = tempMaint;}
+			if(Left(temp,6)=="Serpen"){SerpBeltIV = tempMaint;}
+			if(Left(temp,6)=="Timing"){TimeBeltIV = tempMaint;}
+			if(Left(temp,6)=="Power "){PSFluidIV = tempMaint;}
+			if(Left(temp,6)=="New Ti"){TireNewIV = tempMaint;}
+			if(Left(temp,6)=="Alignm"){AlignmentIV = tempMaint;}
+			if(Left(temp,6)=="Brakes"){BrakesIV = tempMaint;}
+			if(Left(temp,6)=="Rear E"){Rear_EndIV = tempMaint;}
+			if(Left(temp,6)=="Drive "){DriveShaftIV = tempMaint;}
+			if(Left(temp,6)=="O2 Sen"){O2SensorIV = tempMaint;}
+			if(Left(temp,6)=="Fuel P"){FuelPumpIV = tempMaint;}
+			if(Left(temp,6)=="New Ba"){BatCngIV = tempMaint;}
+		}
+	}
+
+}
+
+function Check_Maintenance()
+{
+	var OC = false;
+	var TR = false; 
+	var RA = false;
+	var TA = false;
+	var AF = false;
+	var CA = false;
+	var TS = false;
+	var AC = false;
+	var BA = false;
+	var SP = false;
+	var SE = false;
+	var TI = false;
+	var PO = false;
+	var NT = false;
+	var AL = false;
+	var BR = false;
+	var RE = false;
+	var DS = false;
+	var O2 = false;
+	var FP = false;	
+	var NB = false;
+	var last, next, miles, count, current, flag
+	go("form_Maint");
+	count = rv1.numItems;
+	while ((rv1.ItemText(count,5)!="gas")&&(count > 0 ))
+	{
+		count--;
+	}
+	current = rv1.ItemText(count,1);
+	for (count = rv1.numItems;count > 0;count--)
+	{
+		OC = Check_Item("Oil Change", OC, OilIV, count, current);
+		TR = Check_Item("Tire Rotation", TR, TireRotIV, count, current);
+		RA = Check_Item("Radiator Flush", RA, RadFIV, count, current);
+		TA = Check_Item("Tire Air Check", TA, TireAirIV, count, current);
+		AF = Check_Item("Air Filter Change", AF, AirFiltIV, count, current);
+		CA = Check_Item("Cabin Air Filter", CA, CabinAIRIV, count, current);
+		TS = Check_Item("Trans Filter Change", TS, TransFiltIV, count, current);
+		AC = Check_Item("A/C Charge", AC, ACIV, count, current);
+		BA = Check_Item("Battery Clean", BA, BatClnIV, count, current);
+		SP = Check_Item("Spark plug change", SP, SplugCngIV, count, current);
+		SE = Check_Item("Serpentine belt", SE, SerpBeltIV, count, current);
+		TI = Check_Item("Timing belt", TI, TimeBeltIV, count, current);
+		PO = Check_Item("Power Steering", PO, PSFluidIV, count, current);
+		NT = Check_Item("New Tires", NT, TireNewIV, count, current);
+		AL = Check_Item("Alignment", AL, AlignmentIV, count, current);
+		BR = Check_Item("Brakes", BR, BrakesIV, count, current);
+		RE = Check_Item("Rear End", RE, Rear_EndIV, count, current);
+		DS = Check_Item("Drive Shaft", DS, DriveShaftIV, count, current);
+		O2 = Check_Item("O2 Sensor replacement", O2, O2SensorIV, count, current);
+		FP = Check_Item("Fuel Pump replacement", FP, FuelPumpIV, count, current);
+		NB = Check_Item("New Battery", NB, BatCngIV, count, current);
+	}
+	NoData("Oil Change", OC);
+	NoData("Tire Rotation", TR);
+	NoData("Radiator Flush", RA);
+	NoData("Tire Air Check", TA);
+	NoData("Air Filter Change", AF);
+	NoData("Trans Filter Change", TS);
+	NoData("A/C Charge", AC);
+	NoData("Battery Clean", BA);
+	NoData("Spark plug change", SP);
+	NoData("Serpentine belt", SE);
+	NoData("Timing belt", TI);
+	NoData("Power Steering", PO);
+	NoData("New Tires", NT);
+	NoData("Alignment", AL);
+	NoData("Brakes", BR);
+	NoData("Rear End", RE);
+	NoData("Drive Shaft", DS);
+	NoData("O2 Sensor replacement", O2);
+	NoData("Fuel Pump replacement", FP);
+	NoData("New Battery", NB);
+}
+
+function NoData(maint, flag)
+{
+	if (flag == false)
+	{
+		List1.AddItem("No " + maint + " Data available");
+	}
+}
+
+function Check_Item(maint, flag, Interval, count, current)
+{
+	if((rv1.ItemText(count,5)== maint)&&(flag == false))
+	//List1.ForeColor = RGB(0,255,0);
+	/*if current mileage is less than maint interval - 300 miles 
+	the list box will display a warning that service is due soon.*/
+	{
+		if(((parseInt(Interval) + parseInt(rv1.ItemText(count,1)))   ) > parseInt(current))
+		{
+			List1.AddItem(maint + " OK");
+		}
+		else
+		{
+			List1.AddItem(maint + " DUE SOON");
+			Label9.Caption = maint + " SOON!";
+			Label9.Visible = true;
+			//List1.ForeColor = RGB(255,0,0);
+			Label9.ForeColor = RGB(255,0,0);
+		}
+		flag = true;
+	}
+	return(flag);
+}
+
+function Button26_Click()
+{
+	List1.Clear();
+	Combo2.Text = "";
+	Label9.Caption = "";
+	Check_Maintenance();
+	Button26.Visible = false;
+}
+
+function Keypad(key)
+{
+	if (Combo1.Text == "Select Vehicle")
+	{
+		Alert("Please select a vehicle first");
+	}
+	else
+	{
+		Text1.Text = Text1.Text + key;
+	}
+}
+
+function Keypad1(key)
+{
+	if (Combo2.Text == "Select")
+	{
+		Alert("Please select a maintenance type first");
+	}
+	else
+	{
+		Text3.Text = Text3.Text + key
+	}
+}
